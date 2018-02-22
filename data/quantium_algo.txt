@@ -1,0 +1,418 @@
+QUANTUM ALGORITHMS
+
+(Lecture notes prepared by Cem Say for the Quantum Algorithms course in the Department of Computer Engineering of Boğaziçi University; see the bibliography. Please report any errors to say@boun.edu.tr)
+(Last update: November 24, 2014)
+Introduction
+Using quantum-mechanical properties of natural particles, it is possible to build computers that are different in some interesting ways than the ones that we are used to.
+In our usual computers, a bit is either 0 or 1 at a particular time. As a direct consequence of this, a group (register) of n bits can contain only one of 2n different numbers at a given time. A quantum bit (qubit), on the other hand, can be in a weighted combination (superposition) of both 0 and 1 at the same time. A group of n qubits can therefore hold all of those 2n different numbers simultaneously.
+The act of measurement is important in quantum physics. When we measure a qubit, it settles on an exact value of 0 or 1, and that is what we see, not a combination of the two values. But which value do we see, 0 or 1? In general, this is a probabilistic event, and the probabilities are determined by the state of the quantum bit before the measurement. To represent the exact state of a qubit, we have to specify two complex numbers, called amplitudes, that describe the particular combination of 0 and 1 in that state. 
+In the following, we enclose the binary values of quantum registers between the symbols “” and “” to distinguish them from “classical” bits. So the expression  represents quantum zero, and  represents quantum one. The state of a qubit can then be represented by the expression , where  and  are the amplitudes of  and , respectively, in this state. When we measure this qubit, we see  with probability ||2, and  with probability ||2. (Recall that, for a complex number c=a+b.i, |c| is the real number .) The laws of physics say that, in any quantum register, the sum of these square terms must be 1. So in our example, ||2+||2=1. Similarly, an n-qubit register will have 2n amplitudes, each determining the probability that the binary number corresponding to it will be seen when the register is read, and the squares of their absolute values will be 1.
+
+We now provide an alternative notation which makes the description of quantum algorithms easier:
+
+We describe the group of amplitudes that describe the state of a quantum register as a vector. A qubit with state , which is guaranteed to read 0 when it is measured, is represented by the vector , and a qubit with state  is represented by the vector . (These two vectors are called the basis states.) So the amplitude of the value  is given in the first row of the vector, and the amplitude of the value  is given in the second row. We assume that we have the machinery to set any qubit to one of these two values at the beginning of our algorithm. An arbitrary qubit state is then represented by the vector , where  and  are complex numbers and ||2+||2=1.
+The state of a register consisting of n qubits is represented by the tensor () product of the individual states of the qubits in it.
+For two matrices A and B, where A is n by m, AB equals:
+
+So the tensor product of two vectors  and  equals:
+
+So if we have two qubits in a register, the state where both bits are  can be represented as , and corresponds to the vector . Similarly, , , and  correspond to the vectors , , and , respectively. (These four, corresponding to the only four possibilities that would exist if this was a classical register, are called basis states.) An arbitrary state of a 2-qubit register can then be described as , where, of course, 
+|00|2+|01|2+ |10|2 + |11|2 = 1. This can be generalized to n qubits easily.
+
+A quantum program which transforms a register of n qubits from an input state to an output state can be represented as a 2n by 2n matrix, which, when multiplied by the input state vector, gives the output state vector. The laws of physics say that this matrix should be a unitary matrix. (A unitary matrix is a square matrix M of complex numbers which has the following property: Replace each member a+b.i of M with the number a-b.i. Take the transpose of this matrix. Multiply this new matrix (called )with the original matrix M. The result should be the identity matrix.) This property guarantees that every quantum program is reversible, i.e., the inverse of the function that it computes can also be computed by a quantum program to obtain the original input from the output.
+
+To code a “classical” algorithm in the quantum format, we have to make sure that our program never deletes information. Any classical program can be modified to ensure this, and for every classical program which computes an output from a given input, we can construct a quantum program (i.e. we can write the matrix mentioned above) which performs the same transformation on a register big enough to hold both the input and the output.
+
+Consider the following very simple quantum program working on a single qubit:
+
+(This is called an Hadamard gate.) When the input is , this program changes the state of the qubit to 
+,
+that is, to . So when you read the qubit at the end, you have exactly 50% chance of seeing a 0, and an equal chance of seeing a 1. Classical computers can never create truly random numbers, but this program can.
+The combined effect of several single-qubit programs which run parallelly on the qubits in a register can be represented as the tensor product of their individual matrices. So if we apply the H program to each qubit of a 2-qubit register, the result of this procedure can be calculated by multiplying the matrix
+
+with the 4-element amplitude vector describing the initial state of the two qubits. We can generalize this to n qubits easily. So when you have an n-qubit register, the effect of applying H to each qubit parallelly can be computed by multiplying the matrix that you would obtain by taking the tensor product of n H’s with the 2n-element vector describing the initial state of the register. Generalizing the example above, if this n-qubit register originally contains the value , it is transformed to the “mixed” state
+
+by this program, and we would see each of the 2n binary numbers x with equal probability when we observe the register.
+When the input to a single Hadamard gate is , we see that the output is 
+,
+or, in our alternative notation, . 
+Let’s see what the parallel application of H gates do to a 2-qubit register originally containing :
+,
+or .
+As these examples indicate, whenever we apply the H gate parallelly to a register initially at an arbitrary basis state , where x is a binary number with n bits, the output state is a superposition of all the different 2n basis states, where the absolute value of the amplitude of each basis state is , and the sign of the amplitude of such a basis state  in the resulting superposition is positive if an even number of bits which were 1 in the original state  are still 1 in , and negative otherwise. In other words, the parallel application of H gates to all qubits of an n-qubit register initially at state  results in the state
+,
+where mod 2, such that xi is the ith bit of x. 
+
+The Deutsch-Jozsa Algorithm
+
+We will now examine a quantum algorithm which is clearly superior to any possible classical algorithm for the same job: Let us say that we have a “black box program” which takes as input an n-bit string, and computes and outputs a boolean (0 or 1) function f of this input. We can give any input that we like to this program, and examine the output, but we are not allowed to look inside at the code of the program. (Such black box subroutines are called oracles in the theory of computation.) The only thing that we know about the function f is that it is either a constant function (i.e. it gives the same output for every input) or a balanced function (i.e. it gives output 0 for half of the possible inputs, and 1 for the other half). Our task is to determine whether f is constant or balanced.
+
+Obviously, the worst-case complexity of the best classical algorithm for this job is 2O(n). (You need to run the black box at least 2n-1+1 times with different inputs in the worst case.) We will now see a quantum algorithm that can do this job with a single run of the black box.
+
+Our algorithm must be given a quantum version of the black box. As we mentioned above, for any job that has a classical algorithm that inputs n bits and outputs m bits, one can write a quantum algorithm that inputs and outputs n+m qubits. So let us say that we have a quantum program B which operates on n+1 qubits, such that the input  is transformed by B to the output , where  is the exclusive-or operator. 
+
+Here is an algorithm that operates on n+1 qubits to solve our problem:
+1. Initialize the register so that the first n qubits are , and the last one is .
+2. Apply the H gate to each qubit.
+3. Apply B to the register.
+4. Apply the H gate to the first n qubits.
+5. Read (measure) the number z written in the first n qubits.
+6. If z=, f is constant, otherwise, f is balanced.
+
+Let us see why the algorithm works correctly: At the end of stage 2, the state of the register is
+.
+At the end of stage 3, we have, for each x in the summation, such a term of the state in the register:
+
+
+.
+So the overall state after stage 3 is:
+.
+After stage 4, we end up with:
+.
+Now, for any number z, the probability that we see it at stage 5 is the square of its amplitude, that is,
+.
+So the probability of seeing 0n is 
+
+
+This algorithm, called the Deutsch-Jozsa algorithm, was one of the first that demonstrated the advantage of quantum algorithms over classical ones. 
+
+Simon’s Algorithm
+
+Let us now examine Simon's Algorithm. Unlike the Deutsch-Jozsa algorithm, Simon’s algorithm has a nonzero error probability, that is, it is not 100% certain to give the correct answer. However, the probability that it gives the correct answer is bigger than ½ if the conditions that we will soon state are satisfied, and the process of running an algorithm with such a guarantee a number of times, and taking the value that shows up in a majority of the runs as your final output reduces the probability of ending up with a wrong result so dramatically that computer scientists are reasonably happy when they find fast probabilistic algorithms for their problems. (It does not make great sense to expect a fast zero-error run for almost any job from a quantum computer anyway, as we will see later.)
+
+Simon’s Problem: Given a black box  which computes a function  () that is known either to be one to one or to satisfy the equation 
+
+
+
+
+for a non-trivial s, the problem is to determine if f is one to one, if it is not then to find s.  (We denote the functionality of Uf  as a unitary transformation: )
+
+Algorithm: The “quantum part” of Simon’s algorithm consists of the following steps:
+
+Step 0: Initialize two quantum registers of n and m qubits in the states  and .
+
+Step 1: Apply n-bit Hadamard gate Hn to the first register of n bits. The overall state will be as shown in the following equation. Note that this step puts the first register into an equal superposition of the 2n basis states.
+
+.
+
+
+Step 2: Query the black box for the state prepared in Step 1. Then the next state is
+
+.
+
+
+Step 3: Apply n-bit Hadamard gate Hn to the first register again. The new state is
+
+.
+
+
+Now, if f is one to one then both the domain and range (mirror of the domain under f) of f has the same cardinality . The state shown above is a superposition of the members of the Cartesian product of the domain and range of f. Therefore,   states of the form   are superposed, each with an amplitude equal to either  or . Then, if the state of the first register is measured after Step 3, the probabilities for observing each of the  basis states are equal and given by . Hence the outcome of such a measurement would be a random value between 0 and .
+
+If f is not one to one, then by the guarantee given to us about s, each state of the form  has the amplitude given by
+
+.
+
+
+If  then the amplitude for  becomes zero. So if f is not one to one, then measuring the state of the first register after Step 3, returns a value of j such that .
+
+Step 4: Measure the state t of the first register.
+
+
+We run these four steps  n1 times to form a system of equations of the form . If a nontrivial s exists, then these equations are linearly independent with probability at least ¼. Why? Consider any (i1)-member prefix of our sequence of observations, namely t1, t2, …, ti-1, where 2  i  n1. At most 2i-1 n-bit vectors are linear combinations of these. (Note that it is now useful to view the t’s as vectors of bits, and the relevant operation among them is .) Since the maximum number of n-bit vectors t such that ts=0 is 2n-1, the minimum number of vectors that are not the combinations of i1 vectors is 2n-12i-1. As a result, the probability that the ith vector ti is independent from the first i1 vectors is at least (2n-12i-1)/2n-1 . Using this fact, and the constraint that the first observation should not be the all-zero vector, we see that the probability that one obtains n independent vectors is at least which can, with a little bit of extra cleverness, be shown to be greater than ¼.
+So, if the equations we obtained really are linearly independent, this system of n-1 linear equations in n unknowns can be solved for the n bits of s classically, using Gaussian elimination, in polynomial time (since the unknowns are bits). If we get the value for s, we query the black box twice to see if . If this is the case, we conclude that f is two to one, and s has the value which has already been calculated. If not, (i.e. if we fail in solving the equations, or if the solution does not survive the black box check,) we repeat the entire procedure. If we have not found an s which satisfies  by the end of the third iteration of this outer loop, we claim that f is one to one, and stop. 
+
+Clearly, if f is one to one, the algorithm says so with probability 1. Otherwise, it fails to find n-1 linearly independent equations in all three iterations and gives an incorrect answer only with probability at most (3/4)3<(1/2). The runtime is clearly polynomial. An algorithm which solves this problem in exact polynomial time (with zero probability of error) has also been discovered, and I just might incorporate it in a later release of these notes, so reload once in a while.
+
+The best classical probabilistic algorithm for the same task would require exponentially many queries of the black box in terms of n. To see why, put yourself in place of such an algorithm. All you can do is to query the black box with input after input and hope to obtain some information about s from the outputs. (Let’s assume that we are guaranteed that the function is two to one, and we are just looking for the string s.)  Note that, even if you don’t get the same output to two different inputs, the outputs you get still say something about what s looks like, or rather, what it doesn’t look like: If you have already made k queries without hitting the jackpot by receiving the same output to two different inputs, then you have learned that s is not one of the  values that can be obtained by XORing any pair of the inputs that you have given. So next time you prepare an input, you will not consider any string which can be obtained by XORing one of those values by any previously entered input string. Even with all this sort of cleverness, the probability that your next query will hit the jackpot is at most , since, among the   values for s which are still possible after your previous queries, (the  comes from the guarantee that s is nonzero) only k would let you solve the problem by examining the output of this query (by causing it to be the same as one of the previous k outputs, by being obtainable by XORing that previous input with the input to this query,) and, if the Universe is not trying to help or hinder you, the real s must be thought to be chosen uniformly at random from the set of all candidates. The probability of success after m+1 queries is not more than . In order to be able to say that “this algorithm solves the problem with probability at least p”, for a constant p, (p shouldn’t decrease when n grows, since this makes the technique unusable for big n. If p is a nonzero constant, even a very small one, one can use the algorithm by running it repeatedly for only a constant number of times to find s.) we clearly have to set m to a value around at least 2n/2, which is exponential in terms of n.
+
+Therefore, Simon's algorithm is exponentially faster than the best possible classical algorithm for the same task. Moreover, it is the first algorithm that depends on the idea of realizing the periodic properties of a function in the relative phase factors of a quantum state and then transforming it into information by means of probability distribution of the observed states. The ideas used in the period finding algorithm turned out to be useful for developing algorithms for many other problems.
+
+Grover’s Algorithm
+
+We will now examine Grover’s algorithm for function inversion, which can be used to search a phone book with N entries to find the name corresponding to a given phone number in O() steps (the best classical algorithms can do this in O(N) steps). Assume that we are given a quantum oracle G for computing the boolean function f which is known to return 1 for exactly one possible input number, and 0 for all the remaining  possible inputs. As in our previous example, the oracle operates on n+1 qubits, such that the input  is transformed to the output . Our task is to find which particular value of x makes f(x) = 1.
+
+
+Here is Grover’s algorithm for an n+1 qubit register, where n>2:
+1. Initialize the register so that the first n qubits are , and the last one is .
+2. Apply the H gate to each qubit.
+3. Do the following r times, where r is the nearest integer to :
+a. Apply G to the register.
+b. Apply the program V, which will be described below, to the first n qubits.
+4. Read (measure) the number written in the first n qubits, and claim that this is the value which makes f 1.
+
+The program V is defined as the  by  matrix which has the number  in all its main diagonal entries, and  everywhere else.
+
+Let us see why the algorithm works correctly: At the end of stage 2, the state of the register is
+.
+We will now examine what each iteration of the loop does to the register.
+At the end of the first execution of stage 3.a, we have, for each x in the summation, such a term of the state in the register:
+
+
+.
+Now let us generalize this to an arbitrary execution of this stage, where the amplitude of each  need not be equal. It is easy to see that, if the last qubit is  to start with, the resulting amplitude of  a particular  remains the same if and only if f(x) = 0. For the one  value which makes f(x) = 1, the sign of the amplitude is reversed. And the last qubit remains unchanged at . We can therefore “forget” the last qubit and view stage 3.a as the application of an n-qubit program which flips the sign of the amplitude of the searched number  and leaves everything else unchanged in the first n qubits.
+
+Now to stage 3.b. The best way of understanding the program V is to see it as the sum of the  by  matrix which has the number  in all its entries and the  by  matrix which has -1 in all its main diagonal entries, and 0 everywhere else. Using the properties of matrix multiplication and addition, we can analyze the effect of this stage on our n qubits by analyzing the results that would be obtained if these two matrices were applied separately on the qubits, and then adding the two result vectors. Say that our n-qubit collection has the following state before the execution of this stage:
+
+Multiplication with the  by  matrix which has the number  in all its entries yields the state
+,
+where a is the average of the amplitudes i in the original state.
+On the other hand, multiplying
+
+with the  by  matrix which has -1 in all its main diagonal entries, and 0 everywhere else just flips the signs of all the i in the original state. So what do we get when we add these two result vectors? Each basis state , which had the amplitude  before stage 3.b, obtains the amplitude  at the end of this stage. A useful way of interpreting this stage is saying that each amplitude  is mapped to , that is, every amplitude that was u units above (below) the average amplitude before the execution is at u units below (above) the average amplitude after the execution.
+At this point, we start seeing the logic of Grover’s algorithm: In the beginning, all the  numbers in the n-qubit collection have the same amplitude, namely, . Stage 3.a flips the sign of the amplitude of the searched number , so now the amplitudes of all the other numbers are very close to the average amplitude a, but the amplitude of  is approximately –a, at a distance of nearly 2a from the average. Stage 3.b restores the sign of ’s amplitude to positive, but during this process, its value becomes approximately 3a. Clearly, the amplitude of , and therefore the probability that  will be observed when we read the first n qubits, will grow further and further as the iterations of the loop continue, and this amplitude will reach a value greater than  after a certain number of iterations. Note that, if the amplitude of  grows so much that the average at the beginning of stage 3.b becomes negative, each iteration would start shrinking, rather than growing, the amplitude of , so it is important to know exactly how many times this loop should be iterated. We are now supposed to find what that required number of iterations, which is also essential in the calculation of the time complexity of this algorithm, is.
+To make this calculation, let us adopt a geometric visualization of the vectors we use to represent the states of our quantum registers. If we are talking about an n-qubit collection, as in this case, there are  basis states, as already mentioned. An arbitrary state of our collection is then a vector with length one in the -dimensional space where each of those basis states can be viewed to be at an angle of /2 radians from each other. An arbitrary state  is just the vector sum of all the  component vectors in the expression for it. The length of each of these component vectors is just the absolute value of the corresponding amplitude. The application of a quantum program on an n-qubit register has just the effect of rotating the unit vector representing its state to a new alignment in this space. The probability of observation of a particular basis value x when we are at an arbitrary state = can be viewed as the square of the length of the projection of vector  onto the vector . This projection’s length is just equal to the cosine of the angle between  and . (Do not worry about the amplitudes being complex numbers in general; most what you already know about vectors is still valid here. By the way, in the particular example of Grover’s algorithm, the amplitudes have no imaginary components at any stage of the execution.)
+With this visualization method in mind, we will examine what a single iteration of stage 3 makes to the n-qubit state. We already know that stage 3.a flips the sign of the amplitude of the component vector corresponding to searched number  and leaves everything else unchanged. In the beginning of the first iteration, the state vector is =. So the angle between vector  and each one of the basis state vectors is . In particular, the angle between  and  is . Think about the initial vector as the sum , where the second term is just what you get if you subtract  from , and  is the unit vector in that direction. Since the job of stage 3.a is to flip the sign of the amplitude of  and leave everything else unchanged, the resulting vector is . The angle between this new vector and  is , that is, the same as before! The vector rotated all right, but it ended up at the same angle from all the basis state vectors. Only its alignment changed with respect to . It is important to see that this is what any iteration of stage 3.a does: To reflect the current state vector around the  axis in the plane defined by the  and  axes.
+To have a deeper understanding of what is going on, let’s introduce more of the notation used in the quantum literature. For any column vector , the expression  denotes the row vector obtained by replacing each component a+b.i of  with the number a-b.i, and then writing these in a row. Note that the expression  describes a square matrix. Now, the matrix of stage 3.a can be seen to equal , where I is the identity matrix of the appropriate size. So we know that a program of the form , when applied to a register in state , where the angle between the  and  vectors is /2, reflects the state vector around the  axis in the plane defined by the  and  axes. But here comes another surprise: It turns out that, in quantum computing, multiplying a program’s matrix with any number of the form , where x is any real number (recall that ) yields a program which is completely equivalent to the original one from the point of view of the user. (This is because the measurement probabilities corresponding to the two amplitudes a+b.i and .(a+b.i) are identical, as you can check using the formula for  given above.) This means that  and  (which is just  multiplied by ) can be interchanged without changing the functionality of the program. So we can replace the program of stage 3.a with the completely equivalent program , which can easily be seen to transform the input  to , that is, to reflect it around the  axis, if we prefer such an interpretation.
+
+Now consider the program of stage 3.b: It is easy to see that this program equals , where = is the state of the n-qubit register at the end of stage 2. By our earlier discussion,  and  can be interchanged, and we can say that stage 3.b just reflects its input vector around the  axis. 
+Now think about the plane defined by the  and  axes, with  horizontal and  vertical. After stage 2, our state is , so it is a vector within the first quadrant of this plane. The angle between  and  can be seen to be . When stage 3.a acts, our vector is reflected around the  axis. Since  itself was in the - plane, and we reflected it around , the resulting vector is still in the - plane,  radians away from the  axis in the fourth quadrant. When stage 3.b acts, this vector is reflected around the  axis. Once again, the resulting vector is in the - plane, and it is now  radians from the  axis in the first quadrant. It is easy to see that the combined effect of stage 3 for any iteration in this algorithm is to rotate the vector that it finds for  radians in the counterclockwise direction in the - plane. We want to iterate the loop until the state gets sufficiently close to the  axis so that the probability of observing  during a measurement is greater than ½. Recall that the state vector was  radians away from the  axis before the loop. Clearly, a number r of iterations, where  would be ideal. Since r has to be an integer, this is not always possible, so we settle for . Note that if the loop iterates this many times, the resulting vector can be at most  radians away from the  axis, and the probability of observing  at stage 4 would be at least , which is greater than ½ for all n 2.
+So what is the time complexity of Grover’s algorithm? If we measure it in terms of , which is the size of the “database” being searched, the loop iterates  times. For big N, the numerator approaches  , whereas  tends to near the value of its own argument when the argument is nearing zero, so we can see that the time complexity is indeed O().
+
+The reasoning above can be generalized easily to the case where the number of inputs for which f returns 1 is not one but M≤N/2.
+
+Note that in all the algorithms above, we just analyzed the number of required quantum oracle calls and showed that they were better than the number of required classical oracle calls in the best possible classical algorithms for that job. A complete analysis would also require quantifying the amount of resources (in terms of, for instance, the number elementary quantum gates from a fixed set) that would be required to implement the rest of the algorithms as a function of the size of the input. Although we do not give that analysis here, those algorithms turn out to have good (polynomial) complexities in that regard as well.
+
+
+
+
+Shor’s Factorization Algorithm
+
+The most famous potential application of quantum computing is embodied in Shor’s algorithm, which can find a factor of a given binary integer in a polynomial number of steps, which is exponentially faster than the best known classical algorithm:
+
+On input N: (N is known to be composite number with n bits, you can check for primality in polynomial time classically anyway)
+If N is even, print 2, end.
+For every 2≤ b ≤ log N
+Perform binary search in the interval [2,N] for an a that satisfies ab =N, if you find one, print a, end.
+NOTPERFPOWER:
+Randomly pick an integer x in {2…N1}. (This can be done using a quantum computer.)
+If gcd(x,N)>1 then print gcd(x,N), end. (Fast calculation of the gcd is easy, using Euclid’s famous algorithm.)
+ORDFIND:
+Let t be 2n+1. 
+Build (don’t run right now) a quantum program called E, which operates on two registers (of t and n qubits, respectively,) and which realizes the transformation .
+Do the following 5log(N) times: 
+QINIT: Initialize the first quantum register of t qubits to , and the second quantum register of n qubits to .
+Apply the H gate to each qubit in the first register.
+Apply the program E to the combination of the first and second registers.
+Apply a program which realizes the inverse of the transformation  to the first register. (The reason we describe this program in terms of its inverse is that the inverse is much more famous: It is a quantum version of the Fourier transform.)
+Measure the first register to obtain a number m.
+Apply the classical “continued fractions” algorithm (whose details can be found in Lomonaco’s paper in the references) to find irreducible fractions of the form num/den, which approximate the number m/2t: This algorithm works in a loop, and it prepares a new fraction num/den which is a closer approximation to m/2t at the end of each iteration. At the end of each iteration, we take the new den value and do the following:
+If  den > N then goto QINIT
+If xden = 1 (mod N)
+then BEGIN
+if r has not been assigned a smaller value than this den earlier, then let r be den 
+Go to QINIT
+END
+If none of these conditions are satisfied, we continue with the next iteration of the continued fractions loop, which will prepare a new and better num/den with a greater value for den.
+If no value has been assigned to r, print “failed”, end.
+LASTST: If r is odd or xr/2 =(mod N), print “failed”, end.
+Check if gcd(xr/2 +  N) or gcd(xr/2   N) is a nontrivial factor of N, if so, print that nontrivial factor, if not, print “failed”, end.
+
+Note that only the “middle part” (stages QINIT to the measurement) of this algorithm actually involves qubits.
+
+Why does this work? 
+
+We handle the case where N is a perfect power (i.e. the power of a single integer) separately. Note that if ab =N for integer a and b and N>1, then b can be at most log N. This is such a small number that we can try all possible values for b and remain within a polynomial bound. Finding whether an a exists for a particular b can be done by binary search over the space of all possible a’s (another very efficient algorithm) where we just raise the candidates to the bth power to see if the result equals N. Since the b’s are so small, this exponentiation can be done in polynomial time.
+
+The job of the part of the program starting with the stage ORDFIND is to find what mathematicians call “the order of x modulo N,” i.e. the least positive integer r such that xr=1(mod N) for an x which is chosen randomly from the positive integers less than N which are co-prime to N, that is, gcd(x,N)=1. The program reaches the stage LASTST only when that r has been found for x and N. Now, if that r survives the additional checks specified in that line, at least one of gcd(xr/2 +  N) and gcd(xr/2   N) is guaranteed to be a nontrivial factor of N. (Why? Because if r is the order of x modulo N and r is even, then xr/2(mod N) (let’s call it y) is definitely an integer which is not equal to 1(mod N), and y2=1(modNThis can be rewritten as y21=0(mod N),and since y≠(modN), also as (y1)(y+1)=0(mod N), such that both y1 and y+1 are nonzero. This means that N has a factor in common with y1 or y+1. Furthermore, that factor cannot be N itself, since the previously mentioned constraints mean that both y1 and y+1 are positive integers less than N. So when we compute gcd(xr/2 +  N) and gcd(xr/2N), at least one of them will be a nontrivial factor of N.)
+
+Now, all we need to show is that the ORDFIND stage of the program really finds the required order, and that all this happens in polynomial time with high probability. To do this, we introduce a quantum algorithm for solving a more general problem: That of finding the phase of the eigenvalue of a particular quantum program. Here are the definitions for the terminology in the previous sentence:  is an eigenvector and the complex number a is an eigenvalue of a quantum program U if they satisfy the equation
+					       .
+In the phase estimation problem, we assume that we are given a quantum program E which performs the transformation  for integer j for the program U in which we are interested. We are also given , which is guaranteed to be an eigenvector of U. With this much information, it is certain that the eigenvalue corresponding to this eigenvector is of the form , and our task is to find the real number , called the phase, which is between 0 and 1.
+The phase estimation algorithm is carried out as follows: We initialize the first register to . We initialize the second register to . We apply the H gate to all qubits of the first register. We apply the program E to the register pair. Finally, we apply the inverse quantum Fourier transform, mentioned above in the specification of the factorization algorithm, to the first register, and then measure the first register. By dividing the integer we read by the number 2t, where t is the number of qubits in the first register, we obtain a pretty good approximation to  with pretty high probability of correctness.
+Why does this work? Let us trace the algorithm above step by step.	
+1. The initial state of the system can be expressed as 
+					.
+2. Each qubit of the first register undergoes the Hadamard transform, transforming the system to the state
+					, 
+	where T = 2t.
+3. The application of E causes the second register to be “multiplied” y times with the matrix U. Recalling that  is an eigenvector of U, and that , we see that the resulting state of the second register should be
+.
+By using a property of the tensor product that we also employed in the Deutsch-Jozsa algorithm, (it turns out these two algorithms are related in a subtle way) we can move the coefficient to the first register, and see that the combined state is
+				.
+So the first register’s state has become
+				.
+4. Examining the specification for the inverse quantum Fourier transform in the factorization algorithm, we see that applying that transform to the first register yields the state , upon measurement of which the probability of observing the first few bits coming after the “decimal” (actually, “binary”) point in the binary representation of φ as a number between 0 and 1 in the first register is acceptably high. (It is all right for our purposes for this probability to be a nonzero constant.)
+
+Here is the justification for the statement above:
+After the application of the IQFT, the first register has the state , where a is the best t-bit approximation of 2tφ, and . So a is the best string of t bits that one could write immediately after the point if one had to use only t bits there, and . Clearly, we would like to see a when we measure the first register. Let us compute the probability of this. The amplitude of |a> is , which can be written as , where we define . This is a finite geometric series, and recalling the formula  for the sum of such a series, we see that |a>’s amplitude equals . 
+Now, we will use the equality  in our analysis of |a>’s amplitude. To see this in cases other than the obvious x=0 and x=1, draw the two vectors representing the numbers 1 and  in the complex plane. Use these to draw the vector corresponding to the number . When x is less than ½, the modulus of this number is the length of the odd edge of an isosceles triangle whose other edges have length 1 and meet with an angle of 2x radians. From the famous “law of sines” from trigonometry, that length equals . You can extend easily to the case where x can be greater than ½. 
+ is the division of two complex numbers. Such a division results in an expression of the form (r1/ r2)eiw, where r1 and r2 are the moduluses of the two original numbers, and that is the part which interests us regarding the observation probability. So let us examine the moduluses of  and :
+, (recalling that , and that for all z in [0, 1/2], sin(z)≥2z),
+, (since for all z in [0, 1/2], sin(z)≤z.)
+So we can conclude that the probability of success of the phase estimation algorithm, that is, .
+
+Now note that the running time of the algorithm is the set of Hadamard gates which run in parallel, plus the cost of the program E, plus the cost of inverse QFT. Happily, we know of a polynomial-time quantum algorithm for the inverse QFT. (See (Nielsen & Chuang, 2000) for the details.) No classical way of doing this in polynomial time is known.
+Now that we know about the fast phase estimation algorithm, let us see how it can be used to solve the order finding problem quickly. 
+For any x, N and r as specified in the definition of order finding, consider the matrix
+.
+When we apply this matrix to any state
+				
+where s is an integer such that 0≤s≤r-1, we obtain 
+			         .
+Note that both summations contain the same basis states, since . However, the coefficient of each state now differs by a factor of  from that in the previous equation.
+Making the proper arrangements, we obtain 
+,
+meaning that each  is an eigenvector of U, and s/r is the phase of the corresponding eigenvalue. Could we use the phase estimation algorithm to find this value quickly? In order to be able to do that, we need a fast program E for computing  for integer j. Fortunately, the program E mentioned in the factorization algorithm is exactly what we are looking for, and it has an efficient implementation.
+Now, all we need to obtain s/r using the phase estimation algorithm is to be able to input  to that algorithm. Now, this is not so easy, because knowing  would mean that we know the order r. However, there is a clever solution to that problem as well. Consider the equal superposition of all the eigenvectors :
+
+Let’s plug in the definition of  into this formula:
+
+Now,
+
+as you can easily verify. (Verification of the last line requires visualising r complex numbers situated around a circle so as to cancel each other in the complex plane.) Plugging this formula into the one above it, one obtains
+,
+which tells us that we can simply provide the very easily constructible state  as input to the second register of the phase estimation algorithm. The algorithm would then “run parallelly” for all s values, and would yield upon the measurement at the end an approximation to a ratio φ ≈ s/r, where s is randomly picked between 0 and r. However, we are interested in r rather than the ratio itself. We can work around this problem by noting that both s and r are integers, and therefore the “ideal” s/r, whose binary approximation is provided to us, is a rational number. Furthermore, we also know of an upper bound for r, namely, N. If we compute the nearest fraction to φ satisfying these constraints, there is a chance that we might succeed in finding r. On the other hand, we can verify whether the candidate for r that we have found in this way is indeed (a multiple of) the desired order or not by checking if it satisfies . The efficient classical procedure that extracts s and r from the approximated value of the ratio s/r is called the continued fractions expansion. (The particular value assigned to t at the start of the ORDFIND stage ensures that this algorithm will eventually be able to find s/r among the other approximations that it computes, (if the phase estimate is correct, of course!)) We will not include a detailed specification of the continued fractions algorithm, and the reader is referred once again to (Nielsen & Chuang, 2000) for filling in the blanks.
+
+The justification that all the stages of the algorithm do their jobs with reasonable correctness, yielding a polynomial expected runtime, involves a great deal of nitty-gritty maths, including lots of number-theoretic stuff about the distribution of prime numbers, and will not be detailed here. We just note that, if N has just one prime factor, that factor will be printed out with probability 1 in the first loop of the program. (That loop determines whether N = ab , where a and b are integers and a<N, classically in polynomial time. (The iterated procedure is an integer-arithmetic version of the Newton-Raphson algorithm for computing the value of a which makes the function abN equal zero. See Smid’s paper in the references. For an even faster algorithm, see Bernstein’s paper mentioned in the references.)) If we reach the quantum part of the algorithm, as can be seen in (Nielsen & Chuang, 2000), the probability that we choose a “good” x (i.e. one that either leads us to success right there by having a nontrivial common factor with N or has an order modulo N that will pass the test at the LASTST line is at least ½. Each iteration of the QINIT loop can find the correct r with probability at least , (phase estimation succeeds with probability greater than 2/5, and the s in the above mentioned ratio s/r is a prime with probability greater than ,) so the entire loop can find the correct r with probability at least ½. So running the whole thing four times will find a factor with probability greater than ½.
+
+Quantum Counting
+
+The way we explained it above, one has to know the number of solutions (M) to the problem before one can use Grover’s algorithm to find a solution. However, a clever combination of the iterate used in that algorithm and the phase estimation technique we saw in the discussion of Shor’s algorithm can be used to estimate M using only  oracle calls, where N is as defined in the discussion of Grover’s algorithm. This means that a search-based quantum algorithm for solving NP-complete problems will run quadratically faster than a search-based classical algorithm. Reload these lecture notes once in a while to see if I have expanded them to include a more detailed description of this approach.
+
+Quantum Random Walks
+
+Another interesting method that yields exponential speedup over classical approaches is the quantum random walk, which can be used to find the name of the exit node of a specially structured graph, starting with the entrance node and the ability to use an oracle which can answer questions about the neighbors of a given node in the graph. This approach is significantly different than the ones discussed up to this point, in that it involves concepts related to the simulation of quantum systems, and requires an understanding of Hamiltonians, something that we managed to avoid up till now. Reload these lecture notes once in a while to see if I have expanded them to include a description of that algorithm as well.
+
+Adiabatic Quantum Computation
+
+An even more interesting approach is that of adiabatic quantum computation. This also involves Hamiltonians and yields algorithms (for solving NP-complete problems) that really look like nothing that you have seen before. The mathematics is difficult to say the least, suffice it to say that the time requirements of the adiabatic algorithm for the SAT language were not known even to its inventors the last time I checked. Reload these lecture notes once in a while to see if I have expanded them to include a description of that approach as well.
+
+Let us end with a discussion about computability issues. 
+
+Universality
+
+We now examine the possibility of universal quantum computation. Recall that, in the context of classical computation, we have a “universal Turing machine,” which can take as input any string <M,w>, where M is a Turing machine description, and w is a string, and simulate M on w. It is possible to approach the study of quantum computation in terms of quantum Turing machines (QTM1), and talk about universality by constructing a universal QTM, but the circuit paradigm that we have adopted in these notes (where each elementary step is represented as a gate, and therefore the entire run of a program can be seen as an acyclic circuit) is much easier to understand for most people (and has been shown to be equivalent to the QTM approach anyway,) so let us examine universality in the circuit framework. Just like it is possible to carry out any classical computation using only NAND gates connected appropriately to each other, we will show that any unitary program whose entries are described to us in a reasonable way can be simulated by a circuit composed only of two gate types, which will be explained below, so that the final observation probabilities of the circuit we construct and the given program would be very close, if not identical.
+
+The intuitive description of quantum measurement given above can be made more formal as follows: For every possible outcome m that may be observed as a result of a measurement, there exists a positive operator (called a POVM element) Mm, such that the probability of seeing m when we perform a measurement on a system originally in state  is . (A positive operator has a matrix representation where only the diagonal entries (i.e. those with coordinates of the form (k,k)) are nonzero, and all these are real numbers. Furthermore, if M is a positive operator, then .) Furthermore, the sum of all such Mm is the identity matrix.
+
+To understand what the effect of using a slightly different unitary matrix V instead of an “ideal” matrix U will be on the measurement probabilities, let us examine the following argument from (Nielsen & Chuang, 2000): 
+
+Say that we start with our register in state . Ideally we would like to run the program U, but since we have only limited precision, we instead run program V. At the end, we perform a measurement. Let M be the POVM element associated with the measurement. PU is the probability of getting the corresponding measurement outcome in case our ideal program runs, but what we will really be getting is just PV. So
+
+
+=
+=
+=
+=
+= (where we define )
+
+Now we set
+, that is, , and  
+The Cauchy-Schwarz inequality says that .
+Note that  is a unit vector, so . Therefore we have , and .
+ (since  as mentioned above)
+ (since M is a POVM element, for any , , and so M (and therefore M2) can only have numbers between 0 and 1 in the diagonal)
+So we have obtained .
+Similarly, we obtain , to conclude . Defining , where the maximum is over all possible states  of the register, one sees that . So to keep the deviation of the realized observation probabilities from the desired observation probabilities small, one has to keep  small. Now, considering that V will in general be the product of several matrices corresponding to the individual gates in the program, each of which can only be implemented with some error with respect to their ideal counterparts, should we fear that the small errors introduced by these gates multiply with each other to yield a huge error for the overall program? No, since, as we proved in class, if U=Um…U1 and V=Vm…V1, then , that is, unitary errors add at most linearly.
+
+The two gate types mentioned above are:
+, and
+.
+
+Here is a sketch of the proof of our claim:
+1. Any mm unitary matrix can be written as the product of a finite number of two-level unitary matrices, that is, unitary matrices which act non-trivially on only two or fewer vector components. For example,
+, where  is any unitary matrix, is a two-level matrix. The algorithm for producing this decomposition is simple, and given in (Nielsen & Chuang, 2000). Maybe one day I will have enough time to detail it here.
+2. Any two-level unitary matrix can be implemented using a collection of CNOT gates and some single-qubit gates. For a proof, you know where to go: (Nielsen & Chuang, 2000).
+3. For any single-qubit gate U, the equation  is true. In this equation, , and . For a proof, see (Nielsen & Chuang, 2000). Now, it is not difficult to see that the in the beginning is not important, in the sense that the final observation probabilities do not depend on the value of . So if we just had a way of implementing Ry and Rz for arbitrary angles, we could implement all single-qubit gates.
+4. By just adding a single qubit to our system, we can rewrite any quantum program to contain only real numbers in its matrix, without changing the final observation probabilities! This can be seen as follows: If at any point the state is , and we add an extra qubit whose 0 is named R, and whose 1 is named I, then the state  is obviously equivalent to  from the point of view of the observation probabilities of the j’s.
+5. The G gate described above works as follows: The value in the upper “wire” always goes out the way it goes in. If the upper bit is 0, the same happens to the lower bit. On the other hand, if the upper bit is 1, then the lower bit’s value gets rotated by the angle  = cos-1(3/5) in a plane where the horizontal and vertical axes correspond to the values |0> and |1>, respectively. Let’s understand the nice thing about the angle : If you start from any point on the “unit circle” in the plane we just mentioned, and apply rotations by , you will never visit any point twice! Formally, we will prove that  is an irrational multiple of 2. (That just means that /2is not a rational number.) To see this, let’s switch to another plane; the one that we use to represent complex numbers, where the horizontal axis is the real number line, and the vertical axis is the imaginary number line. Clearly, ei = cos  + isin  = (3 + 4i)/5. From what we know about the multiplication of complex numbers, we can see that, if /2= a/b for integer a and b, then eib = 1. This would mean (3 + 4i)b=5b. Let us now define x+yi  q + wi (mod n)  where q = x (mod n) and w = y (mod n). It is clear that if two complex numbers c1 and c2 are equal to each other, then we also have c1 = c2 (mod n) for any n. We will use this to show that no b such that (3 + 4i)b=5b can exist: If a b such that (3 + 4i)b=5b does exist, then it must be the case that (3 + 4i)b=5b (mod 5). Let’s show that they are not. First, note that, for any b, (3 + 4i)b = z (mod 5), where z is the number that you obtain by multiplying (3 + 4i) with (3 + 4i), writing the result modulo 5 in the form s+di, where s, d  {0,1,2,3,4}, multiplying this with (3 + 4i), writing the result in the same format modulo 5, and so on, until b (3 + 4i)’s are multiplied. We prove this by induction: For b=2, the equality is obvious. We assume the claim is true for b=k, and consider the case for b=k+1: Since (3 + 4i)2 = (-7+24i) = (3 + 4i) (mod 5), the right hand side will be (3+4i) for any value of b. So (3 + 4i)k = (3 + 4i) (mod 5) by the induction assumption. Now note that if (f+gi)=(j+ki) (mod n),  then (f+gi)(v + mi)=(j+ki)(v + mi)  (mod n), since carrying out the multiplication gives (fv-gm+(gv+fm)i) for the left hand side, and (jv-km+(kv+jm)i) for the right hand side, and these numbers are clearly equivalent modulo n according to our definition of complex modulo and our knowledge of the properties of the well-known modulo. So (3 + 4i)k(3 + 4i)  = (3 + 4i) (mod 5), and so for any b, (3 + 4i)b = (3 + 4i) (mod 5). And this is clearly not equivalent to 5b, so we have proven that  is an irrational multiple of 2.
+By using the reasoning in page 196 of (Nielsen & Chuang, 2000), we see that, for any (nonzero) error with which you would like to implement a rotation of a desired angle, there is an integer n such that n successive applications of the G gate with the first bit set to 1 will do the job on the second bit. So we can use the G gate to approximate any gate of the form  for any .
+
+6. The effect of  can be implemented by the above-mentioned gate F(), where the first wire corresponds to the bit that we want to rotate with Rz, and the second wire corresponds to the additional R/I bit we mentioned above. To see this, note that the application of  to a qubit in state  results in the state . Using the all-real representation, the two qubits mentioned above would initially be in the superposition 
+,
+and the resulting superposition is supposed to be
+.
+By using the trigonometric identities  and , it is easy to see that F() does exactly this job.
+7. The effect of  can also be implemented by the gate F(), where the first wire is initialized to |1>, and the second wire corresponds to the bit that we want to rotate, as can be seen easily. This concludes our argument that any quantum program can be implemented with any desired nonzero error with only G and CNOT gates. In fact, not just G, but almost any two-qubit gate can be shown to be universal, but we will definitely not do that here.
+
+Computability
+
+Can quantum computers compute all functions that can be computed by classical computers? The answer is yes, and is based on the fact that the three-qubit Toffoli gate can be used to implement any classical computation, as proven in, as usual, (Nielsen & Chuang, 2000). In fact, just the Toffoli and Hadamard gates form another quantum-universal set of gates.
+
+Can quantum computers compute functions that classical ones (i.e. Turing machines) can not? If so, wouldn’t that be the end of the theory of computation as we learned it? Well, yes and no; here is why:
+
+Recall that we defined a quantum algorithm as a unitary matrix of complex numbers. We do not know of any law of physics that forbids any such matrix from having an actual physical implementation, so it may be the case that actual physical entities which are embodiments of quantum programs which contain arbitrary transcendental numbers of infinite precision in their matrices exist. Note that this violates one of the assumptions that we made about Turing machines; namely, that they must be completely describable by a finite string. We now show that, for every language (even for the classically undecidable ones like ATM,) there exists a quantum algorithm which can decide that language if we allow a small probability of error in the answers. This is impossible for classical computers, even if you let them use random numbers and allow the small error probability.
+
+We know that the set of all strings on a given nonempty alphabet can be put in one-to-one correspondence with the set of positive integers, and it is easy to write a program that computes the integer corresponding to a given string. We use this idea in the first stage of the following program which decides language L with bounded error.
+
+On input w:
+1. Compute the integer corresponding to w in the lexicographic ordering and assign it to variable j.
+2. Let i be j.
+3. Set a single qubit to .
+4. Apply the R gate, which will be described below, 8i times to this qubit.
+5. Apply the gate  to this qubit.
+6. Observe this qubit. If you see , accept; otherwise, reject.
+
+The R gate is the matrix , where the number , such that the function H from the positive integers to the set {-1,1} is defined as the mapping
+
+Note that the value of  is dependent on L. For instance, if L is the set of all strings on , then . The sum of the geometric series is , so  =  in this case. It is easy to see that, for any L,  will be a real number in the interval . 
+By drawing a diagram of what the R gate does to a qubit in the - plane, we see that this amounts to a rotation of the vector with an angle of . Note that the gate used in stage 5 is also of this form, with the rotation angle equal to /4.
+What does this program do to the qubit? Initially, the vector is on the  axis. After stages 4 and 5, it has rotated for a total of 8i + /4 radians, and so is in the state . Note that 
+.
+The final angle k between the vector and the  axis is the sum of /4 and
+
+Note that the sum inside the inner pair of parentheses can be at most 1/56 and at least -1/56.
+Now, if w L, then H(j) = H(i+1) = 1. So k is in the interval . This means that the probability of observing a , and hence accepting the input in this case is .
+On the other hand, if w L, then H(j) = H(i+1) = -1. So k is in the interval . This means that the probability of observing a  and rejecting the input in this case is .
+The secret of the success of this program is, of course, its ability to encode the membership function of the entire language in the digits of the real number Clearly, even if we had a universal quantum computer on which we could implement any quantum program that we can write, we would not be able to use it to solve one of the classically undecidable problems, because we just do not know which  to use! “Machines” which embody such programs may exist somewhere, but how would we recognize one if we saw one?
+To avoid this confusion, most researchers limit their discussions to quantum programs which contain only computable numbers (i.e. numbers that have classical Turing machines which can print their digits to any desired degree of precision) in their matrices. With this restriction, the quantum programs have finite descriptions in the TM language, and can therefore be simulated (within any given nonzero upper bound for deviations) by classical TMs, meaning that they can not solve any classically undecidable problem.
+
+Complexity Classes
+
+The class of languages that can be decided by quantum computers (with the above-mentioned restriction) with bounded error in polynomial time is called BQP. It is known that PBQPPSPACE. It is not known whether any of these inclusions is strict. Go ahead and find out.
+
+BIBLIOGRAPHY
+http://www.wikipedia.org/wiki/Quantum_computer
+http://www-math.mit.edu/~spielman/AdvComplexity/2001/lecture10.ps
+http://www.ee.bilkent.edu.tr/~qubit/n1.ps
+http://www.cs.berkeley.edu/~vazirani/f04quantum/quantum.html
+L. Adleman, J. DeMarrais, and M. Huang. Quantum computability, SIAM Journal on Computing 26:1524-1540, 1997. 
+Andris Ambainis and John Watrous. Two-way finite automata with quantum and classical state, Theoretical Computer Science 287: 299-311,2002.
+Elton Ballhysa, A Generalization of the Deutsch-Jozsa Algorithm and the Development of a Quantum Programming Infrastructure. M.S. Thesis, Boğaziçi University, 2004.
+G. Benenti, G. Casati, G. Strini, Principles of Quantum Computation and Information. Vol 1. World Scientific, 2004.
+Daniel J. Bernstein, Detecting perfect powers in essentially linear time, Math. Comp. 67:1253-1283, 1998. 
+Andrew M. Childs, Richard Cleve, Enrico Deotto, Edward Farhi, Sam Gutmann, Daniel A. Spielman. Exponential algorithmic speedup by a quantum walk. STOC’03, 59-68. 2003.
+J. Gruska, Quantum Computing. McGraw Hill, 1999.
+Evgeniya Khusnutdinova, Problems of Adiabatic Quantum Program Design. M.S. Thesis, Boğaziçi University, 2006.
+A. Yu. Kitaev, A. H. Shen, M. N. Vyalyi. Classical and Quantum Computation. American Mathematical Society, 2002.
+Attila Kondacs and John Watrous. On the Power of Quantum Finite State Automata. FOCS, 66-75, 1997.
+Uğur Küçük, Optimization of Quantum Random Walk Simulations. M.S. Thesis, Boğaziçi University, 2005.
+Samuel J. Lomonaco, A lecture on Shor’s quantum factoring algorithm. arXiv:quant-ph/0010034.
+Cristopher Moore and James P. Crutchfield. Quantum automata and quantum grammars, Theoretical Computer Science 237: 275—306, 2000.
+Michael A. Nielsen and Isaac L. Chuang. Quantum Computation and Quantum Information. Cambridge ; New York : Cambridge University Press, 2000.
+Damla Poslu, Generalizations of Hidden Subgroup Algorithms. M.S. Thesis, Boğaziçi University, 2005.
+Terry Rudolph, Lov Grover, A 2 rebit gate universal for quantum computing. arXiv:quant-ph/0210187.
+Michiel Smid, Primality Testing in Polynomial Time, School of Computer Science, Carleton University, Ottawa.
+
+Appendix 1:
+Let’s run the Deutsch-Jozsa algorithm when n = 1, f(0)=0, f(1)=1 
+Register contents after Stage 1: 
+Register contents after Stage 2: 
+We can rearrange this to look like:
+
+Register contents after Stage 3, which flips the content of the second qubit iff the first qubit is 1:
+
+
+The program which applies H to the first qubit in stage 4 does the following : . So the register contents after Stage 4 are:  = .So there’s no chance of the first qubit being 0.
+In more detail:
+Program of Stage 2:
+
+What happens in Stage 2:
+
+Program of B in this case: (Note that we are not allowed to see this.)
+ 
+What happens in Stage 3:
+
+Program of Stage 4: 
+What happens in Stage 4: 
+
+Combined program of Stages 2,3:
+=
+What happens after Stages 1,2,3:
+=
+Combined program of Stages 2,3,4:
+=
+Combination of Stages 1,2,3,4:
+=
+
+
