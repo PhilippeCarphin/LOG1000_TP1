@@ -1,5 +1,5 @@
 SRC = $(wildcard src/*.cpp)
-OBJ = $(SRC:.cpp=.o)
+OBJ = $(subst src,build,$(SRC:.cpp=.o))
 
 .PHONY: demo
 all: build pari
