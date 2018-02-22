@@ -127,7 +127,6 @@ void HashMap::shallow_copy(HashNode **data)
 
 std::vector<std::string> HashMap::getKeys() const
 {
-	/*
 	std::vector<std::string> res;
 
 	for (int i = 0; i < TABLE_SIZE; i++)
@@ -142,5 +141,4 @@ std::vector<std::string> HashMap::getKeys() const
 	}
 
 	return res;
-	*/
 }
