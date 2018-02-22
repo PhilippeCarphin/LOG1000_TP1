@@ -1,4 +1,5 @@
 SRC = $(wildcard src/*.cpp)
+OBJ = $(SRC:.cpp=.o)
 
 .PHONY: demo
 all: build pari
@@ -16,6 +17,7 @@ build/%.o:src/%.cpp
 
 vars:
 	@echo "SRC = $(SRC)"
+	@echo "OBJ = $(OBJ)"
 
 clean:
 	rm -f build/*.o build/*.d
