@@ -7,7 +7,7 @@ all: build pari
 build:
 	mkdir -p build
 
-pari:build/HashMap.o build/SomeKeyHash.o build/main.o
+pari:$(OBJ)
 	g++ $^ -o pari
 
 -include build/*.d
