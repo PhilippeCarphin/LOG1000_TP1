@@ -1,6 +1,8 @@
 SRC = $(wildcard src/*.cpp)
 OBJ = $(subst src,build,$(SRC:.cpp=.o))
-TRG = exec/pari
+TRG = exec/pari.out
+INSTALL_DIR = install_dir
+INSTALL_NAME = pari
 
 CXXFLAGS = -Werror=all -MMD
 
@@ -8,9 +10,19 @@ CXXFLAGS = -Werror=all -MMD
 all: build exec $(TRG)
 
 build:
-	mkdir -p build
+	mkdir -p $@
 exec:
-	mkdir -p exec
+	mkdir -p $@
+
+$(INSTALL_DIR):
+	mkdir -p $@
+
+install:$(INSTALL_DIR) all
+	cp $(TRG) $(INSTALL_DIR)/$(INSTALL_NAME)
+
+uninstall:
+	rm -f $(INSTALL_DIR)/$(INSTALL_NAME)
+	rmdir $(INSTALL_DIR)
 
 test:$(TRG)
 	./$(TRG) ./data/quantum_algo.txt
@@ -28,4 +40,7 @@ vars:
 	@echo "OBJ = $(OBJ)"
 
 clean:
-	rm -f build/*.o build/*.d
+	rm -f build/*.o build/*.d exec/*
+
+mrproper:clean
+	rmdir build exec
