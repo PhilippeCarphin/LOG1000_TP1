@@ -2,6 +2,8 @@ SRC = $(wildcard src/*.cpp)
 OBJ = $(subst src,build,$(SRC:.cpp=.o))
 TRG = exec/pari
 
+CXXFLAGS = -MMD
+
 .PHONY: demo
 all: build exec $(TRG)
 
@@ -16,7 +18,7 @@ $(TRG):$(OBJ)
 -include build/*.d
 
 build/%.o:src/%.cpp
-	g++ -c $< -o $@ -MMD
+	g++ -c $< -o $@ $(CXXFLAGS)
 
 vars:
 	@echo "SRC = $(SRC)"
