@@ -2,13 +2,15 @@ SRC = $(wildcard src/*.cpp)
 OBJ = $(subst src,build,$(SRC:.cpp=.o))
 
 .PHONY: demo
-all: build pari
+all: build exec exec/pari
 
 build:
 	mkdir -p build
+exec:
+	mkdir -p exec
 
-pari:$(OBJ)
-	g++ $^ -o pari
+exec/pari:$(OBJ)
+	g++ $^ -o $@
 
 -include build/*.d
 
