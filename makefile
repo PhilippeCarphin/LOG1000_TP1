@@ -7,13 +7,11 @@ build:
 pari:build/HashMap.o build/SomeKeyHash.o build/main.o
 	g++ $^ -o pari
 
-build/HashMap.o: src/HashMap.cpp src/HashMap.h src/HashNode.h src/SomeKeyHash.h
-build/SomeKeyHash.o: src/SomeKeyHash.cpp src/SomeKeyHash.h
-build/main.o: src/main.cpp src/HashMap.h src/HashNode.h src/SomeKeyHash.h
+-include build/*.d
 
 build/%.o:src/%.cpp
-	g++ -c $< -o $@
+	g++ -c $< -o $@ -MMD
 
 
 clean:
-	rm -f build/*.o
+	rm -f build/*.o build/*.d
