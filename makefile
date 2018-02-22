@@ -1,3 +1,5 @@
+SRC = $(wildcard src/*.cpp)
+
 .PHONY: demo
 all: build pari
 
@@ -12,6 +14,8 @@ pari:build/HashMap.o build/SomeKeyHash.o build/main.o
 build/%.o:src/%.cpp
 	g++ -c $< -o $@ -MMD
 
+vars:
+	@echo "SRC = $(SRC)"
 
 clean:
 	rm -f build/*.o build/*.d
