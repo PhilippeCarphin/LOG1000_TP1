@@ -1,2 +1,5 @@
 *.o
 pari
+buffer
+build
+exec
